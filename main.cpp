@@ -1,7 +1,6 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <vector>
 #include <set>
 #include <iomanip>
 
@@ -9,12 +8,6 @@ using namespace std;
 
 class Date {
 public:
-    Date() {
-        year = 1;
-        month = 1;
-        day = 1;
-    }
-
     Date (int new_year, int new_month, int new_day) {
 
         if (new_month < 1 || new_month > 12){
@@ -38,9 +31,9 @@ public:
     };
 
 private:
-    int year = 1; // can be less than zero
-    int month = 1;
-    int day = 1;
+    int year; // can be less than zero
+    int month;
+    int day;
 };
 
 ostream& operator<<(ostream& stream, const Date& date){
@@ -66,23 +59,23 @@ bool operator<(const Date& lhs, const Date& rhs){
 
 Date ParseDate(const string& date) {
     istringstream date_stream(date);
-    bool ok = true;
+    bool flag = true;
 
     int year;
-    ok = ok && (date_stream >> year);
-    ok = ok && (date_stream.peek() == '-');
+    flag = flag && (date_stream >> year);
+    flag = flag && (date_stream.peek() == '-');
     date_stream.ignore(1);
 
     int month;
-    ok = ok && (date_stream >> month);
-    ok = ok && (date_stream.peek() == '-');
+    flag = flag && (date_stream >> month);
+    flag = flag && (date_stream.peek() == '-');
     date_stream.ignore(1);
 
     int day;
-    ok = ok && (date_stream >> day);
-    ok = ok && date_stream.eof();
+    flag = flag && (date_stream >> day);
+    flag = flag && date_stream.eof();
 
-    if (!ok) {
+    if (!flag) {
         throw logic_error("Wrong date format: " + date);
     }
     return Date(year, month, day);
@@ -147,44 +140,63 @@ int main() {
                 string operation;
                 input >> operation;
 
-                if (operation == "Add") {
-                    string date_string, event;
-                    input >> date_string >> event;
-                    const Date date = ParseDate(date_string);
-                    if (event != "" || event != " ") {
-                        db.AddEvent(date, event);
-                    }
-                } else if (operation == "Del") {
-                    string date_string, event;
-                    input >> date_string;
-                    if (!input.eof()) {
-                        input >> event;
-                    }
-                    const Date date = ParseDate(date_string);
-                    if (event.empty()) {
-                        const int num_of_events_to_del = db.DeleteDate(date);
-                        cout << "Deleted " << num_of_events_to_del << " events" << endl;
-                    } else {
-                        if (db.DeleteEvent(date, event)) {
-                            cout << "Deleted successfully" << endl;
-                        } else {
-                            cout << "Event not found" << endl;
-                        }
-                    }
-                } else if (operation == "Find") {
-                    string date_string, event;
-                    input >> date_string >> event;
-                    const Date date = ParseDate(date_string);
-                    set<string> events = db.Find(date);
+                map<string, char> operations_codes = {{"Add", 'A'}, {"Del",'D'}, {"Find", 'F'}, {"Print",'P'}};
 
-                    for (string e : events) {
-                        cout << e << endl;
+                char operation_code = operations_codes[operation];
+
+                switch(operation_code) {
+                    case 'A' :
+                    {
+                        string date_string, event;
+                        input >> date_string >> event;
+                        const Date date = ParseDate(date_string);
+                        if (event != "" || event != " ") {
+                            db.AddEvent(date, event);
+                        }
+                        break;
                     }
-                } else if (operation == "Print") {
-                    db.Print();
-                } else {
-                    cout << "Unknown command: " << operation << endl;
-                    return 0;
+                    case 'D' :
+                    {
+                        string date_string, event;
+                        input >> date_string;
+                        if (!input.eof()) {
+                            input >> event;
+                        }
+
+                        const Date date = ParseDate(date_string);
+
+                        if (event.empty()) {
+                            const int num_of_events_to_del = db.DeleteDate(date);
+                            cout << "Deleted " << num_of_events_to_del << " events" << endl;
+                        } else {
+                            if (db.DeleteEvent(date, event)) {
+                                cout << "Deleted successfully" << endl;
+                            } else {
+                                cout << "Event not found" << endl;
+                            }
+                        }
+                        break;
+                    }
+                    case 'F' :
+                    {
+                        string date_string, event;
+                        input >> date_string >> event;
+                        const Date date = ParseDate(date_string);
+                        set<string> events = db.Find(date);
+
+                        for (string e : events) {
+                            cout << e << endl;
+                        }
+                        break;
+                    }
+                    case 'P' :
+                    {
+                        db.Print();
+                        break;
+                    }
+                    default:
+                        cout << "Unknown command: " << operation << endl;
+                        return 0;
                 }
             }
         }
