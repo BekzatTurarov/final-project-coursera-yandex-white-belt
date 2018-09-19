@@ -1,7 +1,7 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <regex>
+#include <vector>
 #include <set>
 #include <iomanip>
 
@@ -54,14 +54,38 @@ ostream& operator<<(ostream& stream, const Date& date){
 
 bool operator<(const Date& lhs, const Date& rhs){
     if (lhs.GetYear() != rhs.GetYear()){
-        return lhs.GetYear()<rhs.GetYear();
+        return lhs.GetYear() < rhs.GetYear();
     }
     else if (lhs.GetMonth() != rhs.GetMonth()){
-        return lhs.GetMonth()<rhs.GetMonth();
+        return lhs.GetMonth() < rhs.GetMonth();
     }
     else {
-        return lhs.GetDay()<rhs.GetDay();
+        return lhs.GetDay() < rhs.GetDay();
     }
+}
+
+Date ParseDate(const string& date) {
+    istringstream date_stream(date);
+    bool ok = true;
+
+    int year;
+    ok = ok && (date_stream >> year);
+    ok = ok && (date_stream.peek() == '-');
+    date_stream.ignore(1);
+
+    int month;
+    ok = ok && (date_stream >> month);
+    ok = ok && (date_stream.peek() == '-');
+    date_stream.ignore(1);
+
+    int day;
+    ok = ok && (date_stream >> day);
+    ok = ok && date_stream.eof();
+
+    if (!ok) {
+        throw logic_error("Wrong date format: " + date);
+    }
+    return Date(year, month, day);
 }
 
 class Database {
@@ -73,15 +97,16 @@ public:
     }
 
     bool DeleteEvent(const Date& date, const string& event){
-        if (records[date].erase(event)>0)
+        if (records.count(date) > 0 && records[date].count(event) > 0) {
+            records[date].erase(event);
             return true;
-        else
-            return false;
+        }
+        return false;
     }
 
     int  DeleteDate(const Date& date){
         int to_del = 0;
-        if (records.count(date)>0){
+        if (records.count(date) > 0){
             to_del = records.at(date).size();
             records.erase(date);
         }
@@ -90,7 +115,7 @@ public:
 
     set<string> Find(const Date& date) const{
         set<string> result;
-        if (records.count(date)>0){
+        if (records.count(date) > 0){
             result = records.at(date);
         }
         return result;
@@ -99,7 +124,6 @@ public:
 
     void Print() const{
         for (const auto& r : records){
-            //if(r.first.GetYear()<0) continue;
             for (auto s : r.second){
                 cout << r.first << ' ' << s << endl;
             }
@@ -110,123 +134,63 @@ private:
     map<Date, set<string>> records;
 };
 
-istream& operator>>(istream& stream, Date& date){
-    int y, m, d;
-
-    set<char> allowed_symbols = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-' };
-
-    string date_string;
-    stream >> date_string;
-
-    for (char c : date_string){
-        if (allowed_symbols.count(c) == 0){
-            throw runtime_error("Wrong date format: " + date_string);
-        }
-    }
-
-    vector<int> dashes(3, 0);
-    int current_index = 0;
-    bool isDash = true;
-
-    for (int i = 0; i < date_string.size(); i++){
-        if (date_string[i] == '-'){
-            isDash = true;
-            if (current_index > 2)
-                throw runtime_error("Wrong date format: " + date_string);
-            ++dashes[current_index];
-        }
-        else {
-            if (isDash){
-                ++current_index;
-                isDash = false;
-            }
-        }
-    }
-
-    if (dashes[0] > 1 || dashes[1] == 0 || dashes[1]>2 || dashes[2]==0 || dashes[2]>3)
-        throw runtime_error("Wrong date format: " + date_string);
-
-    stringstream istream(date_string);
-
-    istream >> y;
-    istream.ignore(1);
-    istream >> m;
-    istream.ignore(1);
-    istream >> d;
-
-    date = Date(y, m, d);
-    return stream;
-}
-
 int main() {
-    Database db;
+        try {
+            Database db;
+            string command;
 
-    string command;
-    while (getline(cin, command)) {
-        // Считайте команды с потока ввода и обработайте каждую
-        if (command.empty() || command == " ") continue;
-        stringstream input(command);
-        string operation;
-        string event;
-        Date date;
+            while (getline(cin, command)) {
+                if(command == "") continue;
 
-        try{
-            input >> operation;
+                stringstream input(command);
 
-            if (operation == "Add"){
-                input >> date >> event;
-                if (event != "" || event != " "){
-                    db.AddEvent(date, event);
-                }
-            }
-            else if (operation == "Del"){
-                input >> date >> event;
-                if (event.empty()){
-                    int num_to_del = db.DeleteDate(date);
-                    cout << "Deleted " << num_to_del << " events" << endl;
-                }
-                else
-                {
-                    if (db.DeleteEvent(date, event)){
-                        cout << "Deleted successfully" << endl;
+                string operation;
+                input >> operation;
+
+                if (operation == "Add") {
+                    string date_string, event;
+                    input >> date_string >> event;
+                    const Date date = ParseDate(date_string);
+                    if (event != "" || event != " ") {
+                        db.AddEvent(date, event);
                     }
-                    else{
-                        cout << "Event not found" << endl;
+                } else if (operation == "Del") {
+                    string date_string, event;
+                    input >> date_string;
+                    if (!input.eof()) {
+                        input >> event;
                     }
+                    const Date date = ParseDate(date_string);
+                    if (event.empty()) {
+                        const int num_of_events_to_del = db.DeleteDate(date);
+                        cout << "Deleted " << num_of_events_to_del << " events" << endl;
+                    } else {
+                        if (db.DeleteEvent(date, event)) {
+                            cout << "Deleted successfully" << endl;
+                        } else {
+                            cout << "Event not found" << endl;
+                        }
+                    }
+                } else if (operation == "Find") {
+                    string date_string, event;
+                    input >> date_string >> event;
+                    const Date date = ParseDate(date_string);
+                    set<string> events = db.Find(date);
+
+                    for (string e : events) {
+                        cout << e << endl;
+                    }
+                } else if (operation == "Print") {
+                    db.Print();
+                } else {
+                    cout << "Unknown command: " << operation << endl;
+                    return 0;
                 }
             }
-            else if (operation == "Find"){
-                input >> date;
-                set<string> events = db.Find(date);
-
-                for (string e : events){
-                    cout << e << endl;
-                }
-            }
-            else if (operation == "Print"){
-                db.Print();
-            }
-            else {
-                cout << "Unknown command: " << operation << endl;
-                return 0;
-            }
         }
-        catch (out_of_range& ofr){
-            cout << ofr.what() << endl;
+        catch (exception& e){
+            cout << e.what() << endl;
             return 0;
         }
-        catch (runtime_error& re){
-            cout << re.what() << endl;
-            return 0;
-        }
-        //catch (logic_error& lr) {
-          //  cout << lr.what() << endl;
-        //}
-        catch (exception& ex){
-            cout << ex.what() << endl;
-            return 0;
-        }
-    }
-
     return 0;
 }
