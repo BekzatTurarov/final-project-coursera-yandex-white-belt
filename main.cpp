@@ -4,29 +4,36 @@
 #include <set>
 #include <iomanip>
 
-using namespace std;
-
-class Date {
+class Date
+        {
 public:
-    Date (int new_year, int new_month, int new_day) {
+    Date (int new_year, int new_month, int new_day)
+    {
 
-        if (new_month < 1 || new_month > 12){
-            throw out_of_range("Month value is invalid: " + to_string(new_month));
-        } else if (new_day < 1 || new_day > 31) {
-            throw out_of_range("Day value is invalid: " + to_string(new_day));
+        if (new_month < 1 || new_month > 12)
+        {
+            throw std::out_of_range("Month value is invalid: " + std::to_string(new_month));
+        } else if (new_day < 1 || new_day > 31)
+        {
+            throw std::out_of_range("Day value is invalid: " + std::to_string(new_day));
         }
         year = new_year;
         month = new_month;
         day = new_day;
     }
 
-    int GetYear() const {
+    int GetYear() const
+    {
         return year;
     };
-    int GetMonth() const {
+
+    int GetMonth() const
+    {
         return month;
     };
-    int GetDay() const {
+
+    int GetDay() const
+    {
         return day;
     };
 
@@ -36,16 +43,18 @@ private:
     int day;
 };
 
-ostream& operator<<(ostream& stream, const Date& date){
-    stream << setfill('0') << setw(4) << to_string(date.GetYear());
+std::ostream& operator << (std::ostream& stream, const Date& date)
+{
+    stream << std::setfill('0') << std::setw(4) << std::to_string(date.GetYear());
     stream << "-";
-    stream << setfill('0') << setw(2) << to_string(date.GetMonth());
+    stream << std::setfill('0') << std::setw(2) << std::to_string(date.GetMonth());
     stream << "-";
-    stream << setfill('0') << setw(2) << to_string(date.GetDay());
+    stream << std::setfill('0') << std::setw(2) << std::to_string(date.GetDay());
     return stream;
 }
 
-bool operator<(const Date& lhs, const Date& rhs){
+bool operator < (const Date& lhs, const Date& rhs)
+{
     if (lhs.GetYear() != rhs.GetYear()){
         return lhs.GetYear() < rhs.GetYear();
     }
@@ -57,8 +66,9 @@ bool operator<(const Date& lhs, const Date& rhs){
     }
 }
 
-Date ParseDate(const string& date) {
-    istringstream date_stream(date);
+Date ParseDate(const std::string& date)
+{
+    std::istringstream date_stream(date);
     bool flag = true;
 
     int year;
@@ -75,79 +85,96 @@ Date ParseDate(const string& date) {
     flag = flag && (date_stream >> day);
     flag = flag && date_stream.eof();
 
-    if (!flag) {
-        throw logic_error("Wrong date format: " + date);
+    if (!flag)
+    {
+        throw std::logic_error("Wrong date format: " + date);
     }
     return Date(year, month, day);
 }
 
-class Database {
+class Database
+        {
 public:
-    void AddEvent(const Date& date, const string& event){
-        if (!event.empty()){
+    void AddEvent(const Date& date, const std::string& event)
+    {
+        if (!event.empty())
+        {
             records[date].insert(event);
         }
     }
 
-    bool DeleteEvent(const Date& date, const string& event){
-        if (records.count(date) > 0 && records[date].count(event) > 0) {
+    bool DeleteEvent(const Date& date, const std::string& event)
+    {
+        if (records.count(date) > 0 && records[date].count(event) > 0)
+        {
             records[date].erase(event);
             return true;
         }
         return false;
     }
 
-    int  DeleteDate(const Date& date){
+    int  DeleteDate(const Date& date)
+    {
         int to_del = 0;
-        if (records.count(date) > 0){
+        if (records.count(date) > 0)
+        {
             to_del = records.at(date).size();
             records.erase(date);
         }
         return to_del;
     }
 
-    set<string> Find(const Date& date) const{
-        set<string> result;
-        if (records.count(date) > 0){
+    std::set<std::string> Find(const Date& date) const
+    {
+        std::set<std::string> result;
+        if (records.count(date) > 0)
+        {
             result = records.at(date);
         }
         return result;
     }
 
 
-    void Print() const{
-        for (const auto& r : records){
-            for (auto s : r.second){
-                cout << r.first << ' ' << s << endl;
+    void Print() const
+    {
+        for (const auto& r : records)
+        {
+            for (auto s : r.second)
+            {
+                std::cout << r.first << ' ' << s << std::endl;
             }
         }
     }
 
 private:
-    map<Date, set<string>> records;
+    std::map<Date, std::set<std::string>> records;
 };
 
-int main() {
-        try {
+int main()
+{
+        try
+        {
             Database db;
-            string command;
+            std::string command;
 
-            while (getline(cin, command)) {
+            while (getline(std::cin, command))
+            {
                 if(command == "") continue;
 
-                stringstream input(command);
+                std::stringstream input(command);
 
-                string operation;
+                std::string operation;
                 input >> operation;
 
-                map<string, char> operations_codes = {{"Add", 'A'}, {"Del",'D'}, {"Find", 'F'}, {"Print",'P'}};
+                std::map<std::string, char> operations_codes = {{"Add", 'A'}, {"Del",'D'}, {"Find", 'F'}, {"Print",'P'}};
 
                 char operation_code = operations_codes[operation];
 
-                switch(operation_code) {
+                switch(operation_code)
+                {
                     case 'A' :
                     {
-                        string date_string, event;
+                        std::string date_string, event;
                         input >> date_string >> event;
                         const Date date = ParseDate(date_string);
                         if (event != "" || event != " ") {
@@ -157,7 +184,7 @@ int main() {
                     }
                     case 'D' :
                     {
-                        string date_string, event;
+                        std::string date_string, event;
                         input >> date_string;
                         if (!input.eof()) {
                             input >> event;
@@ -167,25 +194,25 @@ int main() {
 
                         if (event.empty()) {
                             const int num_of_events_to_del = db.DeleteDate(date);
-                            cout << "Deleted " << num_of_events_to_del << " events" << endl;
+                            std::cout << "Deleted " << num_of_events_to_del << " events" << std::endl;
                         } else {
                             if (db.DeleteEvent(date, event)) {
-                                cout << "Deleted successfully" << endl;
+                                std::cout << "Deleted successfully" << std::endl;
                             } else {
-                                cout << "Event not found" << endl;
+                                std::cout << "Event not found" << std::endl;
                             }
                         }
                         break;
                     }
                     case 'F' :
                     {
-                        string date_string, event;
+                        std::string date_string, event;
                         input >> date_string >> event;
                         const Date date = ParseDate(date_string);
-                        set<string> events = db.Find(date);
+                        std::set<std::string> events = db.Find(date);
 
-                        for (string e : events) {
-                            cout << e << endl;
+                        for (std::string e : events) {
+                            std::cout << e << std::endl;
                         }
                         break;
                     }
@@ -195,13 +222,14 @@ int main() {
                         break;
                     }
                     default:
-                        cout << "Unknown command: " << operation << endl;
+                        std::cout << "Unknown command: " << operation << std::endl;
                         return 0;
                 }
             }
         }
-        catch (exception& e){
-            cout << e.what() << endl;
+        catch (std::exception& e)
+        {
+            std::cout << e.what() << std::endl;
             return 0;
         }
     return 0;
